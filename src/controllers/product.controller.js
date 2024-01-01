@@ -116,20 +116,34 @@ const getProducts = catchAsync(async (req, res) => {
 
   const filter = {};
 
-  if (req.query.itemStatus) {
-    filter.itemStatus = req.query.itemStatus;
-  }
+  ['itemStatus', 'itemClass', 'brand', 'taxCategory'].forEach(param => {
+    if (req.query[param]) {
+      filter[param] = req.query[param];
+    }
+  });
 
-  if (req.query.itemClass) {
-    filter.itemClass = req.query.itemClass;
-  }
-
-  if (req.query.brand) {
-    filter.brand = req.query.brand;
-  }
-
-  if (req.query.taxCategory) {
-    filter.taxCategory = req.query.taxCategory;
+  if (search) {
+    filter.$or = [
+      { preferredSupplier: { $regex: search, $options: 'i' } },
+      { itemStatus: { $regex: search, $options: 'i' } },
+      { inventoryID: { $regex: search, $options: 'i' } },
+      { alternateID: { $regex: search, $options: 'i' } },
+      { itemClass: { $regex: search, $options: 'i' } },
+      { description: { $regex: search, $options: 'i' } },
+      { masterBarcode: { $regex: search, $options: 'i' } },
+      { baseUOMBarcode: { $regex: search, $options: 'i' } },
+      { baseUnit: { $regex: search, $options: 'i' } },
+      { salesUnit: { $regex: search, $options: 'i' } },
+      { purchaseUnit: { $regex: search, $options: 'i' } },
+      { serialClass: { $regex: search, $options: 'i' } },
+      { priceClass: { $regex: search, $options: 'i' } },
+      { taxCategory: { $regex: search, $options: 'i' } },
+      { brand: { $regex: search, $options: 'i' } },
+      { substitute: { $regex: search, $options: 'i' } },
+      { crossSell: { $regex: search, $options: 'i' } },
+      { upSell: { $regex: search, $options: 'i' } },
+      { movementClass: { $regex: search, $options: 'i' } },
+    ];
   }
 
   const sort = {};
@@ -156,6 +170,7 @@ const getProducts = catchAsync(async (req, res) => {
     });
   }
 });
+
 
 
 module.exports = {
