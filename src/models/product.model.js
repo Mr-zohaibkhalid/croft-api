@@ -5,7 +5,7 @@ const ProductSchema = new mongoose.Schema({
   preferredSupplier: String,
   itemStatus: String,
   inventoryID: String,
-  alternateID: { type: String, unique: true }, // Assuming unique KUI
+  alternateID: { type: String, unique: true },
   itemClass: String,
   description: String,
   masterCTNQty: Number,
@@ -46,7 +46,11 @@ const ProductSchema = new mongoose.Schema({
   priceLevel4: Number,
   priceLevel5: Number,
   priceLevel6: Number,
-});
+},
+  {
+    timestamps: true,
+  }
+);
 
 const Product = mongoose.model('Product', ProductSchema);
 

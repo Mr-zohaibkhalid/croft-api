@@ -15,6 +15,7 @@ const upload = catchAsync(async (req, res) => {
   let products = [];
   const duplicateAlternateIDs = [];
   const importedProducts = [];
+  const failedProducts = [];
 
   console.log("file",file)
 
@@ -80,6 +81,7 @@ const upload = catchAsync(async (req, res) => {
 
       if (existingProduct) {
         duplicateAlternateIDs.push(productData.alternateID);
+        failedProducts.push(productData);
       } else {
         const product = new Product(productData);
         await product.save();
@@ -87,21 +89,28 @@ const upload = catchAsync(async (req, res) => {
       }
     }
 
+    // After processing all products, check for duplicates
     if (duplicateAlternateIDs.length > 0) {
-      throw new Error(`Duplicate Alternate IDs found: ${duplicateAlternateIDs.join(', ')}`);
+      res.status(httpStatus.CONFLICT).send({
+        message: 'Some products could not be imported due to duplicate alternate IDs',
+        importedProducts: importedProducts,
+        duplicateAlternateIDs: duplicateAlternateIDs,
+        failedProducts: failedProducts
+      });
+    } else {
+      res.status(httpStatus.CREATED).send({
+        message: 'All products imported successfully',
+        importedProducts: importedProducts,
+      });
     }
-
-    res.status(httpStatus.CREATED).send({
-      message: 'Products imported successfully',
-      importedProducts,
-    });
   } catch (error) {
     res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
       message: 'Error importing products',
       error: error.message,
+      importedProducts: importedProducts,
+      failedProducts: failedProducts // Include any products that were processed before the error occurred
     });
   }
-
 });
 
 
@@ -165,15 +174,76 @@ const getProducts = catchAsync(async (req, res) => {
     });
   } catch (error) {
     res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
-      message: 'Error fetching products',
+      message: 'error fetching products',
       error: error.message,
     });
   }
 });
 
 
+const updateProduct = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const update = req.body;
+
+  const numberFields = ['masterCTNQty', 'masterUOMLength', 'masterUOMHeight', 'masterUOMWidth', 'masterVolumeCubicM', 'masterWeightKG',
+    'baseQTY', 'baseUOMLength', 'baseUOMHeight', 'baseUOMWidth', 'baseVolumeCubicM', 'baseWeightKG', 'lastCost', 'defaultPrice', 'lotSize', 'reorderPoint',
+  'maximumSOH','cost','basePrice','priceLevel1','priceLevel2','priceLevel3','priceLevel4','priceLevel5','priceLevel6'
+  ];
+  numberFields.forEach((field) => {
+    if (field in update && update[field] && !isNaN(Number(update[field]))) {
+      update[field] = Number(update[field]);
+    }
+  });
+
+  try {
+    const product = await Product.findByIdAndUpdate(id, update, { new: true }).exec();
+
+    if (!product) {
+      return res.status(httpStatus.NOT_FOUND).send({
+        message: 'Product not found',
+      });
+    }
+
+    res.status(httpStatus.CREATED).send({
+      message: 'Product updated successfully',
+      data: product,
+    });
+  } catch (error) {
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
+      message: 'error updating product',
+      error: error.message,
+    });
+  }
+});
+
+
+const deleteProduct = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const product = await Product.findByIdAndDelete(id).exec();
+
+    if (!product) {
+      return res.status(httpStatus.NOT_FOUND).send({
+        message: 'Product not found!',
+      });
+    }
+
+    res.status(httpStatus.OK).send({
+      message: 'Product deleted successfully!',
+    });
+  } catch (error) {
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
+      message: 'error deleting product',
+      error: error.message,
+    });
+  }
+});
+
 
 module.exports = {
   upload,
-  getProducts
+  getProducts,
+  updateProduct,
+  deleteProduct
 };
