@@ -95,6 +95,7 @@ const getSuppliers = catchAsync(async (req, res) => {
       { email: regexSearch },
       { companyName: regexSearch },
       { productName: regexSearch },
+      { KUI: regexSearch },
       { status: regexSearch }
     ];
 
@@ -143,6 +144,16 @@ const updateSupplier = catchAsync(async (req, res) => {
         update[field] = Number(update[field]);
       }
     });
+
+    if (update.KUI) {
+      const existingSupplier = await Supplier.findOne({ KUI: update.KUI }).exec();
+      if (existingSupplier && existingSupplier._id.toString() !== id) {
+        return res.status(httpStatus.CONFLICT).send({
+          message: 'Supplier with this inventory stock code already exists',
+        });
+      }
+    }
+
     const product = await Supplier.findByIdAndUpdate(id, update, { new: true }).exec();
 
     if (!product) {
@@ -162,6 +173,7 @@ const updateSupplier = catchAsync(async (req, res) => {
     });
   }
 });
+
 
 
 const deleteSupplier = catchAsync(async (req, res) => {
@@ -187,16 +199,26 @@ const deleteSupplier = catchAsync(async (req, res) => {
   }
 });
 
-
 const addSupplier = catchAsync(async (req, res) => {
   try {
     const update = req.body;
     const numberFields = ['contactNumber', 'minQuantity', 'productWeight', 'productPrice'];
+
     numberFields.forEach((field) => {
-        if (field in update && update[field] && !isNaN(Number(update[field]))) {
-          update[field] = Number(update[field]);
-        }
-      });
+      if (field in update && update[field] && !isNaN(Number(update[field]))) {
+        update[field] = Number(update[field]);
+      }
+    });
+
+    if (update.KUI) {
+      const existingSupplier = await Supplier.findOne({ KUI: update.KUI }).exec();
+      if (existingSupplier) {
+        return res.status(httpStatus.CONFLICT).send({
+          message: 'Supplier with this inventory stock code already exists',
+        });
+      }
+    }
+
     const newSupplier = new Supplier(update);
     await newSupplier.save();
 
@@ -211,6 +233,7 @@ const addSupplier = catchAsync(async (req, res) => {
     });
   }
 });
+
 
 module.exports = {
   upload,

@@ -9,7 +9,7 @@ const SupplierSchema = new mongoose.Schema({
   productName: String,
   minQuantity: Number,
   productPrice: Number,
-  productWeight: Number,
+  productWeight: Number, KUI: { type: String, unique: true },
   status: {type: String, default: 'Inactive'},
 },
   {

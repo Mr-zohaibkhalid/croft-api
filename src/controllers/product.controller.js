@@ -1,7 +1,7 @@
 const catchAsync = require('../utils/catchAsync');
 const httpStatus = require('http-status');
 const ApiError = require("../utils/ApiError");
-const {Product} = require("../models");
+const {Product, Supplier} = require("../models");
 const readXlsxFile = require("read-excel-file/node");
 const csv = require("csvtojson");
 
@@ -89,7 +89,6 @@ const upload = catchAsync(async (req, res) => {
       }
     }
 
-    // After processing all products, check for duplicates
     if (duplicateAlternateIDs.length > 0) {
       res.status(httpStatus.CONFLICT).send({
         message: 'Some products could not be imported due to duplicate alternate IDs',
@@ -108,10 +107,55 @@ const upload = catchAsync(async (req, res) => {
       message: 'Error importing products',
       error: error.message,
       importedProducts: importedProducts,
-      failedProducts: failedProducts // Include any products that were processed before the error occurred
+      failedProducts: failedProducts
     });
   }
 });
+
+const addProduct = catchAsync(async (req, res) => {
+  try {
+    const update = req.body;
+
+    const numberFields = [
+      'masterCTNQty', 'masterUOMLength', 'masterUOMHeight', 'masterUOMWidth',
+      'masterVolumeCubicM', 'masterWeightKG', 'baseQTY', 'baseUOMLength',
+      'baseUOMHeight', 'baseUOMWidth', 'baseVolumeCubicM', 'baseWeightKG',
+      'lastCost', 'defaultPrice', 'lotSize', 'reorderPoint', 'maximumSOH', 'cost',
+      'basePrice', 'priceLevel1', 'priceLevel2', 'priceLevel3',
+      'priceLevel4', 'priceLevel5', 'priceLevel6'
+    ];
+
+    numberFields.forEach(field => {
+      if (field in update) {
+        const value = parseFloat(update[field]);
+        if (!isNaN(value)) {
+          update[field] = value;
+        }
+      }
+    });
+
+    const existingProduct = await Product.findOne({ alternateID: update.alternateID });
+    if (existingProduct) {
+      return res.status(httpStatus.CONFLICT).send({
+        message: 'Product with the same alternate ID already exists',
+      });
+    }
+
+    const addedProduct = new Product(update);
+    await addedProduct.save();
+
+    res.status(httpStatus.CREATED).send({
+      message: 'Product added successfully!',
+      product: addedProduct,
+    });
+  } catch (error) {
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
+      message: 'Error adding product',
+      error: error.message,
+    });
+  }
+});
+
 
 
 const getProducts = catchAsync(async (req, res) => {
@@ -245,5 +289,6 @@ module.exports = {
   upload,
   getProducts,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  addProduct
 };

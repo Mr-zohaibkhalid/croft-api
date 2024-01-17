@@ -38,8 +38,30 @@ app.use(mongoSanitize());
 app.use(compression());
 
 // enable cors
-app.use(cors());
-app.options('*', cors());
+const allowedOrigins = [
+  'https://croft-panel.elevendev.host',
+  'http://croft-panel.elevendev.host',
+  'http://localhost:3000',
+  'http://localhost',
+  '*'
+];
+
+// Define the CORS options
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  }
+};
+
+// Use CORS middleware with the defined options
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+
 
 // jwt authentication
 app.use(passport.initialize());
@@ -52,6 +74,11 @@ if (config.env === 'production') {
 
 // v1 api routes
 app.use('/v1', routes);
+
+//welcome notes
+app.get('/', (req, res) => {
+  res.send('Hello World!');
+});
 
 // send back a 404 error for any unknown api request
 app.use((req, res, next) => {
