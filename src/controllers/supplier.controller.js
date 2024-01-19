@@ -234,11 +234,34 @@ const addSupplier = catchAsync(async (req, res) => {
   }
 });
 
+const bulkDeleteSupplier = catchAsync(async (req, res) => {
+  const { ids } = req.body;
+
+  try {
+    const result = await Supplier.deleteMany({ _id: { $in: ids } }).exec();
+
+    if (result.deletedCount === 0) {
+      return res.status(httpStatus.NOT_FOUND).send({
+        message: 'No suppliers found to delete!',
+      });
+    }
+
+    res.status(httpStatus.OK).send({
+      message: `${result.deletedCount} suppliers deleted successfully!`,
+    });
+  } catch (error) {
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
+      message: 'Error deleting suppliers',
+      error: error.message,
+    });
+  }
+});
+
 
 module.exports = {
   upload,
   getSuppliers,
   updateSupplier,
   deleteSupplier,
-  addSupplier
+  addSupplier,bulkDeleteSupplier
 };

@@ -10,5 +10,6 @@ router.get('/',supplierController.getSuppliers);
 router.post('/add',supplierController.addSupplier);
 router.put('/update/:id',supplierController.updateSupplier);
 router.delete('/delete/:id',supplierController.deleteSupplier);
+router.post('/bulk-delete',supplierController.bulkDeleteSupplier);
 
 module.exports = router;

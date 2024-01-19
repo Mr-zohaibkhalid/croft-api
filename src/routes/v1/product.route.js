@@ -10,5 +10,6 @@ router.get('/',productController.getProducts);
 router.post('/add',productController.addProduct);
 router.put('/update/:id',productController.updateProduct);
 router.delete('/delete/:id',productController.deleteProduct);
+router.post('/bulk-delete',productController.bulkDeleteProduct);
 
 module.exports = router;

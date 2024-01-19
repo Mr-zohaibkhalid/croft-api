@@ -283,6 +283,28 @@ const deleteProduct = catchAsync(async (req, res) => {
     });
   }
 });
+const bulkDeleteProduct = catchAsync(async (req, res) => {
+  const { ids } = req.body;
+
+  try {
+    const result = await Product.deleteMany({ _id: { $in: ids } }).exec();
+
+    if (result.deletedCount === 0) {
+      return res.status(httpStatus.NOT_FOUND).send({
+        message: 'No products found to delete!',
+      });
+    }
+
+    res.status(httpStatus.OK).send({
+      message: `${result.deletedCount} products deleted successfully!`,
+    });
+  } catch (error) {
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
+      message: 'Error deleting products',
+      error: error.message,
+    });
+  }
+});
 
 
 module.exports = {
@@ -290,5 +312,6 @@ module.exports = {
   getProducts,
   updateProduct,
   deleteProduct,
-  addProduct
+  addProduct,
+  bulkDeleteProduct
 };

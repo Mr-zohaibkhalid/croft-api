@@ -45,11 +45,8 @@ const ProductSchema = new mongoose.Schema({
   priceLevel3: Number,
   priceLevel4: Number,
   priceLevel5: Number,
-  priceLevel6: Number,
+  priceLevel6: Number, createdAt: { type: Date, default: Date.now }
 },
-  {
-    timestamps: true,
-  }
 );
 
 const Product = mongoose.model('Product', ProductSchema);
