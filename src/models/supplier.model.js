@@ -3,6 +3,7 @@ const {toJSON, paginate} = require("./plugins");
 
 const SupplierSchema = new mongoose.Schema({
   supplierName: String,
+  supplierId: String,
   email: String,
   companyName: String,
   contactNumber: Number,

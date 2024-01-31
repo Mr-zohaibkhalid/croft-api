@@ -11,5 +11,6 @@ router.post('/add',productController.addProduct);
 router.put('/update/:id',productController.updateProduct);
 router.delete('/delete/:id',productController.deleteProduct);
 router.post('/bulk-delete',productController.bulkDeleteProduct);
+router.post('/bulk-update-status',productController.bulkUpdateProductStatus);
 
 module.exports = router;

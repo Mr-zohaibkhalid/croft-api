@@ -4,6 +4,7 @@ const ApiError = require("../utils/ApiError");
 const {Product, Supplier} = require("../models");
 const readXlsxFile = require("read-excel-file/node");
 const csv = require("csvtojson");
+const Category = require("../models/category.model");
 
 
 const upload = catchAsync(async (req, res) => {
@@ -112,14 +113,23 @@ const getSuppliers = catchAsync(async (req, res) => {
 
   try {
     const totalCount = await Supplier.countDocuments(filter);
-    const products = await Supplier.find(filter)
+    const suppliers = await Supplier.find(filter)
       .sort(sort)
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
       .exec();
 
+    const enhancedSuppliers = await Promise.all(suppliers.map(async (supplier) => {
+      const products = await Product.find({ alternateID: supplier.KUI }).exec();
+
+      return {
+        ...supplier.toJSON(),
+        products: products,
+      };
+    }));
+
     res.status(httpStatus.OK).send({
-      data: products,
+      data: enhancedSuppliers,
       page: parseInt(page),
       limit: parseInt(limit),
       totalCount,

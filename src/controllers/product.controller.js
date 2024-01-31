@@ -4,6 +4,7 @@ const ApiError = require("../utils/ApiError");
 const {Product, Supplier} = require("../models");
 const readXlsxFile = require("read-excel-file/node");
 const csv = require("csvtojson");
+const Category = require("../models/category.model");
 
 
 const upload = catchAsync(async (req, res) => {
@@ -149,6 +150,7 @@ const addProduct = catchAsync(async (req, res) => {
       product: addedProduct,
     });
   } catch (error) {
+    console.log("error",error)
     res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
       message: 'Error adding product',
       error: error.message,
@@ -165,6 +167,7 @@ const getProducts = catchAsync(async (req, res) => {
     sortField = 'inventoryID',
     sortOrder = 'asc',
     search = '',
+    noLimit= false,
   } = req.query;
 
   const filter = {};
@@ -204,17 +207,34 @@ const getProducts = catchAsync(async (req, res) => {
 
   try {
     const totalCount = await Product.countDocuments(filter);
-    const products = await Product.find(filter)
-      .sort(sort)
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit))
-      .exec();
+    const allProducts = await Product.find({}, '_id');
+    const allProductIds = allProducts.map(product => product._id);
+    const products =
+      noLimit ? await Product.find().exec(): await Product.find(filter)
+        .sort(sort)
+        .skip((page - 1) * limit)
+        .limit(parseInt(limit))
+        .exec();
 
+    const supplierIds = products.flatMap(p => p.alternateID);
+    const categoryIds = products.flatMap(p => p.itemClass);
+
+    const suppliers = await Supplier.find({ KUI: { $in: supplierIds } }).exec();
+    const categories = await Category.find({ parentItemClass: { $in: categoryIds } }).exec();
+
+    const enhancedProducts = products.map(product => {
+      return {
+        ...product.toJSON(),
+        suppliers: suppliers.filter(supplier => product?.alternateID.includes(supplier?.KUI)),
+        categories: categories.filter(category => product?.itemClass.includes(category?.parentItemClass))
+      };
+    });
     res.status(httpStatus.OK).send({
-      data: products,
+      data: enhancedProducts,
       page: parseInt(page),
       limit: parseInt(limit),
       totalCount,
+      allProductIds
     });
   } catch (error) {
     res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
@@ -283,6 +303,7 @@ const deleteProduct = catchAsync(async (req, res) => {
     });
   }
 });
+
 const bulkDeleteProduct = catchAsync(async (req, res) => {
   const { ids } = req.body;
 
@@ -306,6 +327,37 @@ const bulkDeleteProduct = catchAsync(async (req, res) => {
   }
 });
 
+const bulkUpdateProductStatus = catchAsync(async (req, res) => {
+  const { ids, newStatus } = req.body;
+  console.log("erereererer")
+  console.log(ids)
+  console.log(newStatus)
+
+  try {
+    const result = await Product.updateMany(
+      { _id: { $in: ids } },
+      { itemStatus: newStatus }
+    ).exec();
+
+    if (result.nModified === 0) {
+      return res.status(httpStatus.NOT_FOUND).send({
+        message: 'No products found to update status!',
+      });
+    }
+
+    res.status(httpStatus.OK).send({
+      message: `${result.nModified} products updated status successfully!`,
+    });
+  } catch (error) {
+    console.log("error",error)
+    res.status(httpStatus.INTERNAL_SERVER_ERROR).send({
+      message: 'Error updating product statuses',
+      error: error.message,
+    });
+  }
+});
+
+
 
 module.exports = {
   upload,
@@ -313,5 +365,6 @@ module.exports = {
   updateProduct,
   deleteProduct,
   addProduct,
-  bulkDeleteProduct
+  bulkDeleteProduct,
+  bulkUpdateProductStatus
 };

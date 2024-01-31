@@ -16,6 +16,7 @@ const ApiError = require('./utils/ApiError');
 
 const app = express();
 
+
 if (config.env !== 'test') {
   app.use(morgan.successHandler);
   app.use(morgan.errorHandler);
@@ -37,13 +38,12 @@ app.use(mongoSanitize());
 // gzip compression
 app.use(compression());
 
+
 // enable cors
 const allowedOrigins = [
   'https://croft-panel.elevendev.host',
   'http://croft-panel.elevendev.host',
-  'http://localhost:3000',
-  'http://localhost',
-  '*'
+  'http://localhost:3000'
 ];
 
 // Define the CORS options
@@ -62,7 +62,6 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 
-
 // jwt authentication
 app.use(passport.initialize());
 passport.use('jwt', jwtStrategy);
@@ -75,7 +74,7 @@ if (config.env === 'production') {
 // v1 api routes
 app.use('/v1', routes);
 
-//welcome notes
+// Define a route for the root URL ('/')
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
